@@ -27,9 +27,17 @@ Flow is Handy underneath: same local models (Whisper, Parakeet, Moonshine, …),
 - **New name and icons.** App icon, menu bar icon (a waveform, with a green dot while recording) and the in-app wordmark.
 - **No auto-updates from upstream.** The updater points at this fork, so Handy releases can never overwrite Flow.
 
-## Install (build from source)
+## Download
 
-Flow isn't published as a download — build it on your Mac (Apple Silicon):
+Grab `Flow-*-aarch64.zip` from the [latest release](https://github.com/Sanjeev2007/Handy-black/releases/latest) (Apple Silicon), unzip it, and move `Flow.app` to `/Applications`. The build is ad-hoc signed and not notarized, so clear the download quarantine once before opening it:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Flow.app
+```
+
+## Build from source
+
+Build it on your Mac (Apple Silicon):
 
 ```bash
 # 1. Tools (one time)
@@ -53,6 +61,12 @@ The first build takes a while (it compiles the speech engine); later builds are 
 ### Permissions
 
 Flow needs **Microphone** and **Accessibility** access. Every local build is ad-hoc signed, so macOS treats each rebuild as a new app: after reinstalling, open **System Settings → Privacy & Security → Accessibility**, remove the old Flow (or Handy) entry with **−**, and add `/Applications/Flow.app` again.
+
+If Flow shows the toggle as on but stays on "Waiting…", the grant still points at the previous build. Clear it and grant again:
+
+```bash
+tccutil reset Accessibility com.pais.handy
+```
 
 ### Coming from Handy
 
