@@ -316,6 +316,10 @@
             "bottom": "Bottom",
             "top": "Top"
           }
+        },
+        "showIdle": {
+          "label": "Show Resting Pill",
+          "description": "Keep a small pill on screen between dictations that expands when you start recording. When off, the overlay only appears while recording or transcribing."
         }
       },
       "pasteMethod": {

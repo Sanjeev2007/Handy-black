@@ -514,6 +514,10 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Keep the small resting pill on screen between dictations (Wispr Flow
+    /// style). When off, the overlay only appears while recording/transcribing.
+    #[serde(default = "default_overlay_show_idle")]
+    pub overlay_show_idle: bool,
 }
 
 fn default_model() -> String {
@@ -566,6 +570,10 @@ fn default_overlay_position() -> OverlayPosition {
     // Position only matters when the overlay is shown; whether it shows at all is
     // `overlay_style` (Linux defaults that to None). So a single default suffices.
     OverlayPosition::Bottom
+}
+
+fn default_overlay_show_idle() -> bool {
+    true
 }
 
 fn default_overlay_style() -> OverlayStyle {
@@ -970,6 +978,7 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         overlay_style: default_overlay_style(),
+        overlay_show_idle: default_overlay_show_idle(),
     }
 }
 

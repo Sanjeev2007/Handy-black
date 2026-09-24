@@ -493,6 +493,10 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
     if settings.overlay_style == OverlayStyle::None {
         return;
     }
+    if state == "idle" && !settings.overlay_show_idle {
+        return;
+    }
+    OVERLAY_SESSION_ACTIVE.store(state != "idle", Ordering::SeqCst);
 
     // The rest queries monitors and the cursor and mutates window geometry. On
     // Linux the monitor/cursor lookups hit GDK/Xlib on the process's shared X11
@@ -589,6 +593,10 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
             );
         }
 
+        // The resting pill is decoration only: let clicks fall through to the
+        // app underneath. Active states take the mouse so cancel is clickable.
+        let _ = overlay_window.set_ignore_cursor_events(state == "idle");
+
         let _ = overlay_window.emit("show-overlay", state);
     }
 }
@@ -628,6 +636,28 @@ pub fn show_transcribing_overlay(app_handle: &AppHandle) {
 /// Shows the processing overlay window
 pub fn show_processing_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "processing");
+}
+
+/// Shows the small resting pill (Wispr Flow style) that stays on screen between
+/// dictations. No-op when the overlay is disabled.
+pub fn show_idle_overlay(app_handle: &AppHandle) {
+    show_overlay_state(app_handle, "idle");
+}
+
+/// Re-apply resting-pill visibility after an overlay setting changes. Leaves an
+/// in-progress session alone; its hide settles into the new state afterwards.
+pub fn sync_idle_overlay(app_handle: &AppHandle) {
+    if OVERLAY_SESSION_ACTIVE.load(Ordering::SeqCst) {
+        return;
+    }
+    let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") else {
+        return;
+    };
+    if idle_pill_enabled(app_handle) {
+        show_idle_overlay(app_handle);
+    } else {
+        let _ = overlay_window.hide();
+    }
 }
 
 /// Updates the overlay window position based on current settings
@@ -685,7 +715,20 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
 /// the instant it drained, well inside the 300 ms hide delay.
 static OVERLAY_SHOW_GENERATION: AtomicU64 = AtomicU64::new(0);
 
-/// Hides the recording overlay window with fade-out animation
+/// True while a dictation session owns the overlay (recording / transcribing /
+/// processing / streaming). Settings changes must not touch the window then —
+/// the session's own hide settles it into the right resting state.
+static OVERLAY_SESSION_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+/// Whether the resting pill should be on screen between dictations.
+fn idle_pill_enabled(app_handle: &AppHandle) -> bool {
+    let settings = settings::get_settings(app_handle);
+    settings.overlay_style != OverlayStyle::None && settings.overlay_show_idle
+}
+
+/// Ends the active overlay session: the frontend collapses the pill back to its
+/// resting size, then the window settles into the click-through idle state (or
+/// is hidden outright when the overlay is disabled).
 pub fn hide_recording_overlay(app_handle: &AppHandle) {
     // Always hide the overlay regardless of settings - if setting was changed while recording,
     // we still want to hide it properly
@@ -693,18 +736,25 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
         // Snapshot before doing anything observable, so any show that lands
         // after this point invalidates the delayed hide below.
         let scheduled_at = OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst);
-        // Emit event to trigger fade-out animation
+        OVERLAY_SESSION_ACTIVE.store(false, Ordering::SeqCst);
+        // Emit event to trigger the collapse animation
         let _ = overlay_window.emit("hide-overlay", ());
-        // Hide the window after a short delay to allow animation to complete,
-        // unless a newer session has shown the overlay again by then.
+        // Settle into idle after the collapse completes (this also shrinks a Live
+        // window back to compact size), unless a newer session has shown the
+        // overlay again by then.
         let window_clone = overlay_window.clone();
+        let handle = app_handle.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(300));
+            std::thread::sleep(std::time::Duration::from_millis(450));
             if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) != scheduled_at {
                 log::debug!("Skipping stale overlay hide: a newer session is showing the overlay");
                 return;
             }
-            let _ = window_clone.hide();
+            if idle_pill_enabled(&handle) {
+                show_idle_overlay(&handle);
+            } else {
+                let _ = window_clone.hide();
+            }
         });
     }
 }

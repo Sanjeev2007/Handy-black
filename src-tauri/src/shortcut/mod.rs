@@ -690,8 +690,10 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
     // resumes) emitting on the next audio callback.
     crate::overlay::update_overlay_enabled_cache(parsed != OverlayStyle::None);
 
-    // Reposition in case the window needs to re-center for the new style.
+    // Reposition in case the window needs to re-center for the new style, and
+    // show/hide the resting pill to match.
     crate::utils::update_overlay_position(&app);
+    crate::utils::sync_idle_overlay(&app);
 
     Ok(())
 }
@@ -1331,6 +1333,19 @@ pub fn change_app_language_setting(app: AppHandle, language: String) -> Result<(
 
     // Refresh the tray menu with the new language
     tray::update_tray_menu(&app);
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_overlay_show_idle_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.overlay_show_idle = enabled;
+    settings::write_settings(&app, settings);
+
+    // Show or hide the resting pill right away.
+    crate::utils::sync_idle_overlay(&app);
 
     Ok(())
 }

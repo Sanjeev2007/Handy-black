@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Dropdown } from "../ui/Dropdown";
+import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { SettingContainer } from "../ui/SettingContainer";
 import { useSettings } from "../../hooks/useSettings";
 import type { OverlayPosition, OverlayStyle } from "@/bindings";
@@ -82,6 +83,18 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
               disabled={isUpdating("overlay_position")}
             />
           </SettingContainer>
+        )}
+
+        {selectedStyle !== "none" && (
+          <ToggleSwitch
+            checked={getSetting("overlay_show_idle") ?? true}
+            onChange={(enabled) => updateSetting("overlay_show_idle", enabled)}
+            isUpdating={isUpdating("overlay_show_idle")}
+            label={t("settings.advanced.overlay.showIdle.label")}
+            description={t("settings.advanced.overlay.showIdle.description")}
+            descriptionMode={descriptionMode}
+            grouped={grouped}
+          />
         )}
       </>
     );
