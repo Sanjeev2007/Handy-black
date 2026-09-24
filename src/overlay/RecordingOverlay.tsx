@@ -15,7 +15,11 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 // "idle" is Wispr Flow's resting pill: the overlay stays on screen as a small
 // capsule between dictations and springs open when a session starts.
 type OverlayState =
-  "idle" | "recording" | "streaming" | "transcribing" | "processing";
+  | "idle"
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing";
 type ActiveState = Exclude<OverlayState, "idle">;
 
 // How long the Live panel plays its exit before handing over to the idle pill.

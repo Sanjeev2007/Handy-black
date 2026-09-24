@@ -382,7 +382,11 @@ fn apply_on_main(app: &AppHandle) {
     let mut icon_ok = false;
     if icon_changed {
         match icon {
-            Some(image) => match tray.set_icon_with_as_template(Some(image), true) {
+            // Template icons are recolored by macOS; the recording icon keeps
+            // its green dot, so it is drawn as-is (per-theme files exist).
+            Some(image) => match tray
+                .set_icon_with_as_template(Some(image), !desired.icon_path.contains("recording"))
+            {
                 Ok(()) => icon_ok = true,
                 Err(err) => error!("Failed to update tray icon '{}': {err}", desired.icon_path),
             },
